@@ -1,10 +1,9 @@
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: dc-front
+  name: front
 data:
   PORT: '8080'
   CLI_PORT: '8081'
   WS_STREAM_PORT: '8081'
-  SOCKET_MANAGER_SVC: 'dc-socket-manager'
-  VIDEO_ROUTE: 'claw.rciots.com:443/ws'
+  SOCKET_MANAGER_SVC: 'socket-manager'

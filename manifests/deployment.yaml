@@ -44,13 +44,10 @@ spec:
                 configMapKeyRef:
                   name: front
                   key: SOCKET_MANAGER_SVC
-            - name: VIDEO_ROUTE
-              valueFrom:
-                configMapKeyRef:
-                  name: front
-                  key: VIDEO_ROUTE
           ports:
             - containerPort: 8080
+              protocol: TCP
+            - containerPort: 8081
               protocol: TCP
           securityContext: {}
           imagePullPolicy: Always

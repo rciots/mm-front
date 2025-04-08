@@ -10,6 +10,7 @@ FROM registry.access.redhat.com/ubi9/nodejs-20:latest
 USER root
 WORKDIR /app
 COPY package.json /app
+COPY app.js /app
 COPY --from=builder /app/dist /app/dist
 RUN npm install
 RUN npm cache clean --force 
