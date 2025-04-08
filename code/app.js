@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const { Server } = require("socket.io");
 const app = express();
+var websocket = require("ws");
 const http = require("http");
 const socketcli = require("socket.io-client");
 
