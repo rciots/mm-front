@@ -1,0 +1,67 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: front
+  labels:
+    app: front
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: front
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: front
+    spec:
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+      securityContext: {}
+      containers:
+        - resources: {}
+          terminationMessagePath: /dev/termination-log
+          name: front
+          env:        
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: front
+                  key: PORT
+            - name: CLI_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: front
+                  key: CLI_PORT
+            - name: WS_STREAM_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: front
+                  key: WS_STREAM_PORT
+            - name: SOCKET_MANAGER_SVC
+              valueFrom:
+                configMapKeyRef:
+                  name: front
+                  key: SOCKET_MANAGER_SVC
+            - name: VIDEO_ROUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: front
+                  key: VIDEO_ROUTE
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          securityContext: {}
+          imagePullPolicy: Always
+          terminationMessagePolicy: File
+          image: >-
+            quay.io/rciots/mm-front:latest
+      dnsPolicy: ClusterFirst
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600

@@ -4,14 +4,21 @@ const { Server } = require("socket.io");
 const app = express();
 const http = require("http");
 const socketcli = require("socket.io-client");
-const { env } = require("process");
 
 // load env variables
 
-const env = require("dotenv").config();
-
-const socketcli = env.SOCKET_CLI || "http://localhost:8082";
-
+const PORT = process.env.PORT || 8080;
+const cliport = process.env.CLI_PORT || 8081;
+const socket_manager = process.env.SOCKET_MANAGER_SVC || "localhost";
+var websocket_stream_port = process.env.WS_STREAM_PORT || 8082;
+var streaming_websocket = new websocket.Server({port: websocket_stream_port, perMessageDeflate: false});
+streaming_websocket.broadcast = function(data){
+	streaming_websocket.clients.forEach(function each(client){
+        if (client.readyState === websocket.OPEN){
+            client.send(data);
+        }
+	});
+};
 
 // Configuración de Express
 app.use(express.static(path.join(__dirname, "dist")));
@@ -20,12 +27,11 @@ app.get("*", (req, res) => {
 });
 
 // Configuración del servidor
-const PORT = process.env.PORT || 8080;
 const server = http.createServer(app);
 const io = new Server(server);
 
 // Configuración del cliente socket
-const ioclient = new socketcli.connect(socketcli, {
+const ioclient = new socketcli.connect("http://" + socket_manager + ":" + cliport, {
   extraHeaders: { origin: "ui" },
   reconnection: true,
   reconnectionDelay: 500
@@ -35,7 +41,9 @@ const ioclient = new socketcli.connect(socketcli, {
 ioclient.on("connect", () => {
   console.log("Connected to game manager server");
 });
-
+ioclient.on('video', (data) => {
+  streaming_websocket.broadcast(data);
+});
 ioclient.on("disconnect", () => {
   console.log("Disconnected from game manager server");
 });
