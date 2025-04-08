@@ -1,12 +1,10 @@
-FROM registry.access.redhat.com/ubi9/nodejs-20:latest as builder
+FROM registry.access.redhat.com/ubi9/nodejs-22-minimal:latest as builder
 USER root
 WORKDIR /app
-COPY package.json /app
-RUN npm install
 COPY . /app
 RUN npm run build
 
-FROM registry.access.redhat.com/ubi9/nodejs-20:latest
+FROM registry.access.redhat.com/ubi9/nodejs-20-minimal:latest
 USER root
 WORKDIR /app
 COPY package.json /app
