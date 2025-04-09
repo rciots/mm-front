@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Route, RouteComponentProps, Switch, useLocation } from 'react-router-dom';
-import { Dashboard1 } from '@app/Dashboard/Dashboard1';
-import { Dashboard2 } from '@app/Dashboard/Dashboard2';
+//import { Dashboard1 } from '@app/Dashboard/Dashboard1';
+//import { Dashboard2 } from '@app/Dashboard/Dashboard2';
 import { Home } from '@app/Home/Home';
 import { HowItWorks } from '@app/HowItWorks/HowItWorks';
 import { Marbles } from '@app/Marbles/Marbles';
@@ -47,25 +47,25 @@ const routes: AppRouteConfig[] = [
     path: '/play',
     title: 'RCIoTs Marble Maze | Marbles Maze',
   },
-  {
-    label: 'Dashboards',
-    routes: [
-  {
-    component: Dashboard1,
-    exact: true,
-    label: 'Marbles Maze Dashboard',
-    path: '/dashboard1',
-    title: 'RCIoTs Marble Maze | Main Dashboard',
-  },
-  {
-    component: Dashboard2,
-    exact: true,
-    label: 'Mock Data Dashboard',
-    path: '/dashboard2',
-    title: 'RCIoTs Marble Maze | Main Dashboard',
-  },
-],
-  },
+//  {
+//    label: 'Dashboards',
+//    routes: [
+//  {
+//    component: Dashboard1,
+//    exact: true,
+//    label: 'Marbles Maze Dashboard',
+//    path: '/dashboard1',
+//    title: 'RCIoTs Marble Maze | Main Dashboard',
+//  },
+//  {
+//    component: Dashboard2,
+//    exact: true,
+//    label: 'Mock Data Dashboard',
+//    path: '/dashboard2',
+//    title: 'RCIoTs Marble Maze | Main Dashboard',
+//  },
+//],
+//  },
   {
     component: HowItWorks,
     exact: true,
