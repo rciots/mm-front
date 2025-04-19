@@ -5,7 +5,7 @@ const app = express();
 var websocket = require("ws");
 const http = require("http");
 const socketcli = require("socket.io-client");
-
+let activeVideoUsers = 0;
 // load env variables
 
 const PORT = process.env.PORT || 8080;
@@ -13,6 +13,23 @@ const cliport = process.env.CLI_PORT || 8081;
 const socket_manager = process.env.SOCKET_MANAGER_SVC || "localhost";
 var websocket_stream_port = process.env.WS_STREAM_PORT || 8082;
 var streaming_websocket = new websocket.Server({port: websocket_stream_port, perMessageDeflate: false});
+
+streaming_websocket.on("connection", function connection(ws) {
+  activeVideoUsers++;
+  if (activeVideoUsers == 1) {
+    ioclient.emit("led", 1);
+  }
+  ws.on("close", function close() {
+    if (activeVideoUsers > 0) {
+      activeVideoUsers--;
+    }
+    if (activeVideoUsers == 0) {
+      ioclient.emit("led", 0);
+    }
+  }
+  );
+});
+
 streaming_websocket.broadcast = function(data){
 	streaming_websocket.clients.forEach(function each(client){
         if (client.readyState === websocket.OPEN){
@@ -20,6 +37,8 @@ streaming_websocket.broadcast = function(data){
         }
 	});
 };
+
+
 
 // Configuración de Express
 app.use(express.static(path.join(__dirname, "dist")));
@@ -57,11 +76,13 @@ ioclient.on("error", (error) => {
 let usersList = [];
 let gameRunning = false;
 const MAX_PLAYERS = 1;
+let currentPlayers = [];
 
 // Eventos del servidor socket
 io.on("connection", (socket) => {
   console.log("New client connected");
-
+  socket.emit("usersList", usersList);
+  socket.emit("currentPlayers", currentPlayers);
   // Eventos de gestión de conexión
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.userId);
@@ -73,6 +94,7 @@ io.on("connection", (socket) => {
     const existingUser = usersList.find(user => user.userId === data.userId);
     if (existingUser) {
       console.log("User already in list:", data.userId);
+      socket.emit("userValidation", {valid: false, message: "User already in list"});
       return;
     }
 
@@ -87,6 +109,7 @@ io.on("connection", (socket) => {
 
     socket.userId = data.userId;
     console.log(`User ${data.userId} joined - Status: ${isWaiting ? 'waiting' : 'active'}`);
+    socket.emit("userValidation", {valid: true, message: "User joined"});
   });
 
   // Eventos de juego

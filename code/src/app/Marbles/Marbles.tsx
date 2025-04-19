@@ -1,9 +1,12 @@
 import * as React from 'react';
 import { PageSection, Title, Modal, ModalVariant, Button, Form, FormGroup, Grid, GridItem, Popover, TextInput } from '@patternfly/react-core';
 import RosaVientosEstrellas from './rose';
+import { ExpandArrowsAltIcon } from '@patternfly/react-icons';
+import { PadControl } from './PadControl';
 declare global {
   interface Window {
     JSMpeg: any;
+    validatePlayerName: (name: string) => boolean;
   }
 }
 
@@ -17,8 +20,19 @@ const Marbles: React.FunctionComponent = () => {
   const [isModalOpen, setModalOpen] = React.useState(false);
   const [playerName, setPlayerName] = React.useState('');
   const [isWideScreen, setIsWideScreen] = React.useState(window.innerWidth > 1000);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const fullscreenButtonRef = React.useRef<HTMLButtonElement>(null);
+  const [showForm, setShowForm] = React.useState(true);
+  const [playersQueue, setPlayersQueue] = React.useState<string[]>([]);
+  const [currentPlayers, setCurrentPlayers] = React.useState<string[]>([]);
+
   const handleModalToggle = (_event: KeyboardEvent | React.MouseEvent) => {
-    setModalOpen(!isModalOpen);
+    if (window.validatePlayerName && window.validatePlayerName(playerName)) {
+      setModalOpen(!isModalOpen);
+      setShowForm(false);
+    } else {
+      alert('El nombre de jugador debe tener al menos 4 caracteres');
+    }
   };
   const handleNameInputChange = (_event, value: string) => {
     setPlayerName(value);
@@ -52,13 +66,41 @@ const Marbles: React.FunctionComponent = () => {
       console.error('Error al cargar Socket:', error);
     }
     document.body.appendChild(socket);
+
+    // Configurar listeners para los eventos personalizados
+    const handlePlayersQueueUpdate = (event: CustomEvent) => {
+      setPlayersQueue(event.detail.usersList);
+    };
+
+    const handleCurrentPlayersUpdate = (event: CustomEvent) => {
+      setCurrentPlayers(event.detail.currentPlayers);
+    };
+
+    window.addEventListener('updatePlayersQueue', handlePlayersQueueUpdate as EventListener);
+    window.addEventListener('updateCurrentPlayers', handleCurrentPlayersUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('updatePlayersQueue', handlePlayersQueueUpdate as EventListener);
+      window.removeEventListener('updateCurrentPlayers', handleCurrentPlayersUpdate as EventListener);
+    };
   }, []);
+
+  const toggleFullscreen = () => {
+    const container = document.getElementById('canvas-container');
+    if (!document.fullscreenElement) {
+      container?.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
 
   const updatePositions = () => {
     if (scriptLoaded && canvasRef.current && rosaVientosRef.current) {
-
       const canvas = canvasRef.current;
       const rosaVientos = rosaVientosRef.current;
+
       if (!streamStarted) {
         setStreamStarted(true);
         const jsmpegurl = 'wss://www.rciots.com/video';
@@ -67,55 +109,59 @@ const Marbles: React.FunctionComponent = () => {
         });
       }
 
-      canvas.style.width = '1600px';
-      canvas.style.height = '900px';      
-      if ((window.innerWidth < 1920) && (window.innerHeight < 1080)) {
-        canvas.style.width = window.innerWidth * 0.7 + 'px';
-        canvas.style.height = window.innerWidth * 0.7 * 9 / 16 + 'px';
-      } else if (window.innerWidth < 1920) {
-        canvas.style.width = window.innerWidth * 0.7 + 'px';
-        canvas.style.height = window.innerWidth * 0.7 * 9 / 16 + 'px';
-      } else if (window.innerHeight < 1080) {
-        canvas.style.width = window.innerHeight * 0.7 * 16 / 9 + 'px';
-        canvas.style.height = window.innerHeight * 0.7 + 'px';
-      }
-      // set rosaVientos size based on canvas size
-      // if canvas.style.width = 1600px then rosaVientos.style.width = 200px, else will be proportional
-      const canvasWidth = canvas.style.width;
-      const canvasHeight = canvas.style.height;
-      const rosaVientosWidth = 200;
-      const rosaVientosHeight = 200;
-      if (canvasWidth === '1600px') {
-        rosaVientos.style.width = '200px';
-        rosaVientos.style.height = '200px';
+      // Ajustar tamaño del canvas
+      if (isFullscreen) {
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
       } else {
-        const width = parseInt(canvasWidth.replace('px', ''));
-        const height = parseInt(canvasHeight.replace('px', ''));
-        const ratio = width / 1600;
-        rosaVientos.style.width = `${rosaVientosWidth * ratio}px`;
-        rosaVientos.style.height = `${rosaVientosHeight * ratio}px`;
+        const container = document.getElementById('canvas-container');
+        if (container) {
+          const maxWidth = Math.min(1600, window.innerWidth * 0.75);
+          const maxHeight = Math.min(900, window.innerHeight * 0.75);
+          container.style.width = `${maxWidth}px`;
+          container.style.height = `${maxHeight}px`;
+        }
       }
 
+      // Ajustar tamaño de la rosa de los vientos proporcionalmente
+      const container = document.getElementById('canvas-container');
+      const containerWidth = container ? container.clientWidth : window.innerWidth;
+      const containerHeight = container ? container.clientHeight : window.innerHeight;
+      
+      const rosaVientosWidth = isFullscreen ? 
+        Math.min(window.innerWidth, window.innerHeight) * 0.15 : 
+        200 * (containerWidth / 1600);
+      const rosaVientosHeight = isFullscreen ? 
+        Math.min(window.innerWidth, window.innerHeight) * 0.15 : 
+        200 * (containerHeight / 900);
 
-      if (canvas && rosaVientos) {
-        
-        
-        const canvasRect = canvas.getBoundingClientRect();
-        const rosaVientosWidth = rosaVientos.offsetWidth;
-        const rosaVientosHeight = rosaVientos.offsetHeight;
-  
-        rosaVientos.style.position = 'absolute';
-        rosaVientos.style.top = `${canvasRect.top + (canvasRect.height / 2) - (rosaVientosHeight / 2)}px`;
-        rosaVientos.style.left = `${canvasRect.left + (canvasRect.width / 2) - (rosaVientosWidth / 2)}px`;
-      }
+      rosaVientos.style.width = `${rosaVientosWidth}px`;
+      rosaVientos.style.height = `${rosaVientosHeight}px`;
 
-      canvas.style.borderRadius = '30px';
+      // Centrar la rosa de los vientos
+      rosaVientos.style.position = 'absolute';
+      rosaVientos.style.top = '50%';
+      rosaVientos.style.left = '50%';
+      rosaVientos.style.transform = 'translate(-50%, -50%)';
+      rosaVientos.style.zIndex = '9999';
+
+      canvas.style.borderRadius = isFullscreen ? '0' : '30px';
       canvas.style.border = '0px solid';
     }
   }
  
   React.useEffect(() => {
-    
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  React.useEffect(() => {
     const handleSidebarToggle = (event) => {
       setSidebarOpen(event.detail.sidebarOpen);
       updatePositions();
@@ -130,61 +176,178 @@ const Marbles: React.FunctionComponent = () => {
       window.removeEventListener('scroll', updatePositions);
       window.removeEventListener('sidebarToggle', handleSidebarToggle);
     };
-  }, [scriptLoaded, sidebarOpen, streamStarted]);
+  }, [scriptLoaded, sidebarOpen, streamStarted, isFullscreen]);
+
+  const handleDirectionChange = (direction: string) => {
+    console.log('Dirección:', direction);
+    // Aquí puedes agregar la lógica para manejar los movimientos
+  };
 
   return (
     <PageSection>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div id="divResponsive" style={isWideScreen ? { maxWidth: '90%', width: '100%' } : {}}>
-      <Title headingLevel="h1">Play Marbles Maze at the Edge!</Title>
-      <br/>
-      <div>
-        <Form isHorizontal >
-          <Grid hasGutter>
-            <GridItem span={2}>
-                <TextInput 
-                  isRequired
-                  placeholder="Player Name"
-                  type="text"
-                  id="playerName"
-                  name="playerName"
-                  aria-describedby="playerName"
-                  value={playerName}
-                  onChange={handleNameInputChange}
-                />
-              
-            </GridItem>
-            <GridItem span={1} className="pf-u-ml-md"> 
-            <Button variant="secondary"  onClick={handleModalToggle}>Start</Button>
-            </GridItem>
-          </Grid>
-        </Form>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div id="divResponsive" style={isWideScreen ? { maxWidth: '90%', width: '100%' } : {}}>
+          <Title headingLevel="h1">Play Marbles Maze at the Edge!</Title>
+          <br/>
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ marginRight: '1rem' }}>
+                <Button
+                  ref={fullscreenButtonRef}
+                  variant="secondary"
+                  onClick={toggleFullscreen}
+                  style={{
+                    padding: '8px',
+                    minWidth: '40px',
+                    height: '40px'
+                  }}
+                >
+                  <ExpandArrowsAltIcon />
+                </Button>
+              </div>
+              {showForm && (
+                <Form isHorizontal>
+                  <Grid hasGutter>
+                    <GridItem span={2}>
+                      <TextInput 
+                        isRequired
+                        placeholder="Player Name"
+                        type="text"
+                        id="playerName"
+                        name="playerName"
+                        aria-describedby="playerName"
+                        value={playerName}
+                        onChange={handleNameInputChange}
+                      />
+                    </GridItem>
+                    <GridItem span={1} className="pf-u-ml-md"> 
+                      <Button variant="secondary" onClick={handleModalToggle}>Join</Button>
+                    </GridItem>
+                  </Grid>
+                </Form>
+              )}
+            </div>
 
-      <br/>
-        {/* Canvas */}
-        <canvas
-          id="videoCanvas"
-          ref={canvasRef}
-          width={1792}
-          height={1008}
-          style={{ position: 'relative'}}
-        />
-        
-        {/* Rosa de los vientos centrada sobre el canvas */}
-        <div 
-          ref={rosaVientosRef}
-          style={{ 
-            position: 'absolute',
-            zIndex: 50,
-            width: '200px',
-            height: '200px',
-            pointerEvents: 'auto'
-          }}
-        >
-          <RosaVientosEstrellas />
+            <br/>
+            {/* Contenedor del canvas y la rosa */}
+            <div 
+              id="canvas-container"
+              style={{ 
+                position: 'relative',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: isFullscreen ? '100%' : 'auto',
+                height: isFullscreen ? '100%' : 'auto',
+                margin: '0 auto'
+              }}
+            >
+              {/* Canvas */}
+              <canvas
+                id="videoCanvas"
+                ref={canvasRef}
+                width={1792}
+                height={1008}
+                style={{ 
+                  position: 'relative',
+                  width: '100%',
+                  height: '100%'
+                }}
+              />
+              
+              {/* Rosa de los vientos */}
+              <div 
+                ref={rosaVientosRef}
+                style={{ 
+                  position: 'absolute',
+                  zIndex: 9999,
+                  width: '200px',
+                  height: '200px',
+                  pointerEvents: 'none'
+                }}
+              >
+                <RosaVientosEstrellas />
+              </div>
+
+              {/* Botón de pantalla completa en modo fullscreen */}
+              {isFullscreen && (
+                <Button
+                  ref={fullscreenButtonRef}
+                  variant="secondary"
+                  onClick={toggleFullscreen}
+                  style={{
+                    position: 'absolute',
+                    top: '10px',
+                    left: '10px',
+                    zIndex: 10000,
+                    padding: '8px',
+                    minWidth: '40px',
+                    height: '40px'
+                  }}
+                >
+                  <ExpandArrowsAltIcon />
+                </Button>
+              )}
+
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '20px',
+                  right: '20px',
+                  zIndex: 10000,
+                  backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                  borderRadius: '8px',
+                  padding: '10px',
+                  minWidth: '200px'
+                }}
+              >
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ 
+                        textAlign: 'right', 
+                        padding: '8px',
+                        borderBottom: '2px solid #333',
+                        fontSize: '1.1em'
+                      }}>
+                        Players queue
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {playersQueue.map((player, index) => (
+                      <tr key={index}>
+                        <td style={{ padding: '8px', textAlign: 'right' }}>{player}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {currentPlayers.length > 0 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 10000,
+                    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    minWidth: '200px',
+                    textAlign: 'center',
+                    fontSize: '1.1em'
+                  }}
+                >
+                  Current: {currentPlayers.join(' | ')}
+                </div>
+              )}
+
+              <PadControl onDirectionChange={handleDirectionChange} />
+            </div>
+          </div>
         </div>
-      </div>
-      </div>
       </div>
     </PageSection>
   );

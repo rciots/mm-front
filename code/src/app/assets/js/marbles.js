@@ -2,8 +2,20 @@ var socket = io();
 
 socket.on('connect', function() {
     console.log('Connected to server');
-}
-);
+});
+
+socket.on('usersList', function(usersList) {
+    // Disparar evento personalizado con la lista de usuarios
+    const event = new CustomEvent('updatePlayersQueue', { detail: { usersList } });
+    window.dispatchEvent(event);
+});
+
+socket.on('currentPlayers', function(currentPlayers) {
+    // Disparar evento personalizado con los jugadores actuales
+    const event = new CustomEvent('updateCurrentPlayers', { detail: { currentPlayers } });
+    window.dispatchEvent(event);
+});
+
 // create arrows object with up, down, left and right
 var arrows = {
     up: false,
@@ -75,4 +87,8 @@ function moveArrow() {
     // set RosaVientosEstrellas direction
     const customEvent = new CustomEvent('changeDirection', { detail: { direction } });
     window.dispatchEvent(customEvent);
+}
+
+function validatePlayerName(name) {
+    return name && name.length >= 4;
 }
