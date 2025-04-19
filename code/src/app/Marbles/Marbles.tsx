@@ -8,6 +8,19 @@ declare global {
     JSMpeg: any;
     validatePlayerName: (name: string) => boolean;
   }
+  interface Document {
+    webkitFullscreenElement: Element | null;
+    mozFullScreenElement: Element | null;
+    msFullscreenElement: Element | null;
+    webkitExitFullscreen: () => Promise<void>;
+    mozCancelFullScreen: () => Promise<void>;
+    msExitFullscreen: () => Promise<void>;
+  }
+  interface HTMLElement {
+    webkitRequestFullscreen: () => Promise<void>;
+    mozRequestFullScreen: () => Promise<void>;
+    msRequestFullscreen: () => Promise<void>;
+  }
 }
 
 const Marbles: React.FunctionComponent = () => {
@@ -87,11 +100,32 @@ const Marbles: React.FunctionComponent = () => {
 
   const toggleFullscreen = () => {
     const container = document.getElementById('canvas-container');
-    if (!document.fullscreenElement) {
-      container?.requestFullscreen();
+    if (!container) return;
+
+    if (!document.fullscreenElement && !document.webkitFullscreenElement && 
+        !document.mozFullScreenElement && !document.msFullscreenElement) {
+      // Entrar en pantalla completa
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
+      } else if (container.mozRequestFullScreen) {
+        container.mozRequestFullScreen();
+      } else if (container.msRequestFullscreen) {
+        container.msRequestFullscreen();
+      }
       setIsFullscreen(true);
     } else {
-      document.exitFullscreen();
+      // Salir de pantalla completa
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
       setIsFullscreen(false);
     }
   };
@@ -152,12 +186,20 @@ const Marbles: React.FunctionComponent = () => {
  
   React.useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(!!document.fullscreenElement || !!document.webkitFullscreenElement || 
+                     !!document.mozFullScreenElement || !!document.msFullscreenElement);
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
   }, []);
 
