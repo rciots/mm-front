@@ -3,6 +3,7 @@ import { PageSection, Title, Modal, ModalVariant, Button, Form, FormGroup, Grid,
 import RosaVientosEstrellas from './rose';
 import { ExpandArrowsAltIcon } from '@patternfly/react-icons';
 import { PadControl } from './PadControl';
+
 declare global {
   interface Window {
     JSMpeg: any;
@@ -21,10 +22,16 @@ declare global {
     mozRequestFullScreen: () => Promise<void>;
     msRequestFullscreen: () => Promise<void>;
   }
+  interface ScreenOrientation {
+    lock: (orientation: string) => Promise<void>;
+    unlock: () => void;
+  }
+  interface Screen {
+    readonly orientation: ScreenOrientation;
+  }
 }
 
 const Marbles: React.FunctionComponent = () => {
-  // Crea una referencia para el elemento canvas
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const rosaVientosRef = React.useRef<HTMLDivElement>(null);
   const [scriptLoaded, setScriptLoaded] = React.useState(false);
@@ -44,13 +51,14 @@ const Marbles: React.FunctionComponent = () => {
       setModalOpen(!isModalOpen);
       setShowForm(false);
     } else {
-      alert('El nombre de jugador debe tener al menos 4 caracteres');
+      alert('Player name must be at least 4 characters long');
     }
   };
+
   const handleNameInputChange = (_event, value: string) => {
     setPlayerName(value);
   };
-  // Configura JSMpeg cuando el script está cargado y el canvas está disponible
+
   React.useEffect(() => {
     const scriptPath = '/assets/js/jsmpeg.min.js';
     
@@ -58,29 +66,29 @@ const Marbles: React.FunctionComponent = () => {
     jsmpeg.src = scriptPath;
     jsmpeg.async = true;
     jsmpeg.onload = () => {
-      console.log('JSMpeg cargado correctamente');
+      console.log('JSMpeg loaded successfully');
       setScriptLoaded(true);
     };
     jsmpeg.onerror = (error) => {
-      console.error('Error al cargar JSMpeg:', error);
+      console.error('Error loading JSMpeg:', error);
     };
     document.body.appendChild(jsmpeg);
     const socket = document.createElement('script');
     socket.src = '/assets/js/socket.io.min.js';
     socket.async = true;
     socket.onload = () => {
-      console.log('Socket cargado correctamente');
+      console.log('Socket loaded successfully');
       const marblesjs = document.createElement('script');
       marblesjs.src = '/assets/js/marbles.js';
       marblesjs.async = true;
       document.body.appendChild(marblesjs);
     }
     socket.onerror = (error) => {
-      console.error('Error al cargar Socket:', error);
+      console.error('Error loading Socket:', error);
     }
     document.body.appendChild(socket);
 
-    // Configurar listeners para los eventos personalizados
+    // Configure listeners for custom events
     const handlePlayersQueueUpdate = (event: CustomEvent) => {
       setPlayersQueue(event.detail.usersList);
     };
@@ -98,35 +106,63 @@ const Marbles: React.FunctionComponent = () => {
     };
   }, []);
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = async () => {
     const container = document.getElementById('canvas-container');
     if (!container) return;
 
     if (!document.fullscreenElement && !document.webkitFullscreenElement && 
         !document.mozFullScreenElement && !document.msFullscreenElement) {
-      // Entrar en pantalla completa
-      if (container.requestFullscreen) {
-        container.requestFullscreen();
-      } else if (container.webkitRequestFullscreen) {
-        container.webkitRequestFullscreen();
-      } else if (container.mozRequestFullScreen) {
-        container.mozRequestFullScreen();
-      } else if (container.msRequestFullscreen) {
-        container.msRequestFullscreen();
+      // Enter fullscreen
+      try {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) {
+          await container.webkitRequestFullscreen();
+        } else if (container.mozRequestFullScreen) {
+          await container.mozRequestFullScreen();
+        } else if (container.msRequestFullscreen) {
+          await container.msRequestFullscreen();
+        }
+
+        // Force landscape orientation on mobile devices
+        if (screen.orientation && screen.orientation.lock) {
+          try {
+            // Check if device is mobile
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+              await screen.orientation.lock('landscape');
+            }
+          } catch (error) {
+            console.log('Could not lock orientation:', error);
+          }
+        }
+
+        setIsFullscreen(true);
+      } catch (error) {
+        console.error('Error entering fullscreen:', error);
       }
-      setIsFullscreen(true);
     } else {
-      // Salir de pantalla completa
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.mozCancelFullScreen) {
-        document.mozCancelFullScreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
+      // Exit fullscreen
+      try {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          await document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+          await document.msExitFullscreen();
+        }
+
+        // Unlock orientation
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+
+        setIsFullscreen(false);
+      } catch (error) {
+        console.error('Error exiting fullscreen:', error);
       }
-      setIsFullscreen(false);
     }
   };
 
@@ -143,7 +179,7 @@ const Marbles: React.FunctionComponent = () => {
         });
       }
 
-      // Ajustar tamaño del canvas
+      // Adjust canvas size
       if (isFullscreen) {
         canvas.style.width = '100%';
         canvas.style.height = '100%';
@@ -157,7 +193,7 @@ const Marbles: React.FunctionComponent = () => {
         }
       }
 
-      // Ajustar tamaño de la rosa de los vientos proporcionalmente
+      // Adjust rosa de los vientos size proportionally
       const container = document.getElementById('canvas-container');
       const containerWidth = container ? container.clientWidth : window.innerWidth;
       const containerHeight = container ? container.clientHeight : window.innerHeight;
@@ -172,7 +208,7 @@ const Marbles: React.FunctionComponent = () => {
       rosaVientos.style.width = `${rosaVientosWidth}px`;
       rosaVientos.style.height = `${rosaVientosHeight}px`;
 
-      // Centrar la rosa de los vientos
+      // Center rosa de los vientos
       rosaVientos.style.position = 'absolute';
       rosaVientos.style.top = '50%';
       rosaVientos.style.left = '50%';
@@ -221,8 +257,8 @@ const Marbles: React.FunctionComponent = () => {
   }, [scriptLoaded, sidebarOpen, streamStarted, isFullscreen]);
 
   const handleDirectionChange = (direction: string) => {
-    console.log('Dirección:', direction);
-    // Aquí puedes agregar la lógica para manejar los movimientos
+    console.log('Direction:', direction);
+    // Here you can add the logic to handle movements
   };
 
   return (
@@ -271,7 +307,6 @@ const Marbles: React.FunctionComponent = () => {
             </div>
 
             <br/>
-            {/* Contenedor del canvas y la rosa */}
             <div 
               id="canvas-container"
               style={{ 
@@ -284,7 +319,6 @@ const Marbles: React.FunctionComponent = () => {
                 margin: '0 auto'
               }}
             >
-              {/* Canvas */}
               <canvas
                 id="videoCanvas"
                 ref={canvasRef}
@@ -297,7 +331,6 @@ const Marbles: React.FunctionComponent = () => {
                 }}
               />
               
-              {/* Rosa de los vientos */}
               <div 
                 ref={rosaVientosRef}
                 style={{ 
@@ -311,7 +344,6 @@ const Marbles: React.FunctionComponent = () => {
                 <RosaVientosEstrellas />
               </div>
 
-              {/* Botón de pantalla completa en modo fullscreen */}
               {isFullscreen && (
                 <Button
                   ref={fullscreenButtonRef}
