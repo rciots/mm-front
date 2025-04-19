@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { PageSection, Title, Modal, ModalVariant, Button, Form, FormGroup, Grid, GridItem, Popover, TextInput } from '@patternfly/react-core';
 import RosaVientosEstrellas from './rose';
-import { ExpandArrowsAltIcon } from '@patternfly/react-icons';
+import { ExpandArrowsAltIcon, CompressArrowsAltIcon } from '@patternfly/react-icons';
 import { PadControl } from './PadControl';
 
 declare global {
@@ -45,6 +45,21 @@ const Marbles: React.FunctionComponent = () => {
   const [showForm, setShowForm] = React.useState(true);
   const [playersQueue, setPlayersQueue] = React.useState<string[]>([]);
   const [currentPlayers, setCurrentPlayers] = React.useState<string[]>([]);
+  const touchStartYRef = React.useRef(0);
+
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    const touchEndY = e.touches[0].clientY;
+    const diff = touchStartYRef.current - touchEndY;
+    
+    // If user swipes down more than 100px, exit fullscreen
+    if (diff > 100) {
+      toggleFullscreen();
+    }
+  };
 
   const handleModalToggle = (_event: KeyboardEvent | React.MouseEvent) => {
     if (window.validatePlayerName && window.validatePlayerName(playerName)) {
@@ -110,30 +125,94 @@ const Marbles: React.FunctionComponent = () => {
     const container = document.getElementById('canvas-container');
     if (!container) return;
 
+    // Check if device is iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    // Check if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
     if (!document.fullscreenElement && !document.webkitFullscreenElement && 
-        !document.mozFullScreenElement && !document.msFullscreenElement) {
+        !document.mozFullScreenElement && !document.msFullscreenElement && !isFullscreen) {
       // Enter fullscreen
       try {
-        if (container.requestFullscreen) {
-          await container.requestFullscreen();
-        } else if (container.webkitRequestFullscreen) {
-          await container.webkitRequestFullscreen();
-        } else if (container.mozRequestFullScreen) {
-          await container.mozRequestFullScreen();
-        } else if (container.msRequestFullscreen) {
-          await container.msRequestFullscreen();
-        }
+        if (isIOS) {
+          // Hide the masthead and menu button
+          const masthead = document.querySelector('.pf-v5-c-masthead');
+          const pageHeader = document.querySelector('.pf-v5-c-page__header');
+          if (masthead) {
+            (masthead as HTMLElement).style.display = 'none';
+          }
+          if (pageHeader) {
+            (pageHeader as HTMLElement).style.display = 'none';
+          }
 
-        // Force landscape orientation on mobile devices
-        if (screen.orientation && screen.orientation.lock) {
-          try {
-            // Check if device is mobile
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            if (isMobile) {
-              await screen.orientation.lock('landscape');
-            }
-          } catch (error) {
-            console.log('Could not lock orientation:', error);
+          // Add PWA-like styles
+          document.body.style.overflow = 'hidden';
+          document.body.style.position = 'fixed';
+          document.body.style.width = '100%';
+          document.body.style.height = '100%';
+          
+          // Position the container
+          container.style.position = 'fixed';
+          container.style.top = '0';
+          container.style.left = '0';
+          container.style.width = '100%';
+          container.style.height = '100%';
+          container.style.zIndex = '9999';
+
+          // Add meta viewport for PWA-like behavior
+          const viewportMeta = document.querySelector('meta[name="viewport"]');
+          if (viewportMeta) {
+            viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+          }
+
+          // Add PWA-like status bar color
+          const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+          if (!themeColorMeta) {
+            const newThemeColor = document.createElement('meta');
+            newThemeColor.name = 'theme-color';
+            newThemeColor.content = '#000000';
+            document.head.appendChild(newThemeColor);
+          }
+
+          setIsFullscreen(true);
+        } else if (isMobile) {
+          // For other mobile devices
+          if (container.requestFullscreen) {
+            await container.requestFullscreen();
+          } else if (container.webkitRequestFullscreen) {
+            await container.webkitRequestFullscreen();
+          } else if (container.mozRequestFullScreen) {
+            await container.mozRequestFullScreen();
+          } else if (container.msRequestFullscreen) {
+            await container.msRequestFullscreen();
+          }
+          
+          // Hide only the masthead and menu button
+          const masthead = document.querySelector('.pf-v5-c-masthead');
+          const pageHeader = document.querySelector('.pf-v5-c-page__header');
+          if (masthead) {
+            (masthead as HTMLElement).style.display = 'none';
+          }
+          if (pageHeader) {
+            (pageHeader as HTMLElement).style.display = 'none';
+          }
+          
+          // Adjust container styles for mobile
+          container.style.position = 'fixed';
+          container.style.top = '0';
+          container.style.left = '0';
+          container.style.width = '100%';
+          container.style.height = '100%';
+          container.style.zIndex = '9999';
+        } else {
+          if (container.requestFullscreen) {
+            await container.requestFullscreen();
+          } else if (container.webkitRequestFullscreen) {
+            await container.webkitRequestFullscreen();
+          } else if (container.mozRequestFullScreen) {
+            await container.mozRequestFullScreen();
+          } else if (container.msRequestFullscreen) {
+            await container.msRequestFullscreen();
           }
         }
 
@@ -144,19 +223,93 @@ const Marbles: React.FunctionComponent = () => {
     } else {
       // Exit fullscreen
       try {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          await document.webkitExitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-          await document.mozCancelFullScreen();
-        } else if (document.msExitFullscreen) {
-          await document.msExitFullscreen();
-        }
+        if (isIOS) {
+          // Restore PWA-like styles
+          document.body.style.overflow = '';
+          document.body.style.position = '';
+          document.body.style.width = '';
+          document.body.style.height = '';
 
-        // Unlock orientation
-        if (screen.orientation && screen.orientation.unlock) {
-          screen.orientation.unlock();
+          // Restore masthead and menu button
+          const masthead = document.querySelector('.pf-v5-c-masthead');
+          const pageHeader = document.querySelector('.pf-v5-c-page__header');
+          if (masthead) {
+            (masthead as HTMLElement).style.display = '';
+          }
+          if (pageHeader) {
+            (pageHeader as HTMLElement).style.display = '';
+          }
+
+          // Restore container styles
+          container.style.position = 'relative';
+          container.style.top = '';
+          container.style.left = '';
+          container.style.width = '';
+          container.style.height = '';
+          container.style.zIndex = '';
+
+          // Restore viewport meta
+          const viewportMeta = document.querySelector('meta[name="viewport"]');
+          if (viewportMeta) {
+            viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0');
+          }
+
+          // Remove theme-color meta
+          const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+          if (themeColorMeta) {
+            themeColorMeta.remove();
+          }
+
+          // Force a reflow
+          container.offsetHeight;
+          setIsFullscreen(false);
+        } else if (isMobile) {
+          // For other mobile devices
+          // 1. First, restore all styles and visibility
+          const masthead = document.querySelector('.pf-v5-c-masthead');
+          const pageHeader = document.querySelector('.pf-v5-c-page__header');
+          if (masthead) {
+            (masthead as HTMLElement).style.display = '';
+          }
+          if (pageHeader) {
+            (pageHeader as HTMLElement).style.display = '';
+          }
+          
+          // 2. Restore container styles
+          container.style.position = 'relative';
+          container.style.top = '';
+          container.style.left = '';
+          container.style.width = '';
+          container.style.height = '';
+          container.style.zIndex = '';
+
+          // 3. Try to exit fullscreen
+          try {
+            if (document.exitFullscreen) {
+              await document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+              await document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+              await document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+              await document.msExitFullscreen();
+            }
+          } catch (error) {
+            console.error('Error exiting fullscreen:', error);
+          }
+
+          // 4. Force a reflow to ensure styles are applied
+          container.offsetHeight;
+        } else {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            await document.webkitExitFullscreen();
+          } else if (document.mozCancelFullScreen) {
+            await document.mozCancelFullScreen();
+          } else if (document.msExitFullscreen) {
+            await document.msExitFullscreen();
+          }
         }
 
         setIsFullscreen(false);
@@ -165,6 +318,48 @@ const Marbles: React.FunctionComponent = () => {
       }
     }
   };
+
+  // Add styles for fullscreen container
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      #canvas-container:fullscreen {
+        width: 100vw !important;
+        height: 100vh !important;
+        background: black;
+      }
+      #canvas-container:-webkit-full-screen {
+        width: 100vw !important;
+        height: 100vh !important;
+        background: black;
+      }
+      #canvas-container:-moz-full-screen {
+        width: 100vw !important;
+        height: 100vh !important;
+        background: black;
+      }
+      #canvas-container:-ms-fullscreen {
+        width: 100vw !important;
+        height: 100vh !important;
+        background: black;
+      }
+      @supports (-webkit-touch-callout: none) {
+        /* iOS-specific styles */
+        #canvas-container {
+          height: -webkit-fill-available;
+        }
+        body {
+          overscroll-behavior: none;
+          -webkit-overflow-scrolling: touch;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const updatePositions = () => {
     if (scriptLoaded && canvasRef.current && rosaVientosRef.current) {
@@ -193,20 +388,19 @@ const Marbles: React.FunctionComponent = () => {
         }
       }
 
-      // Adjust rosa de los vientos size proportionally
-      const container = document.getElementById('canvas-container');
-      const containerWidth = container ? container.clientWidth : window.innerWidth;
-      const containerHeight = container ? container.clientHeight : window.innerHeight;
+      // Check if device is mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      const rosaVientosWidth = isFullscreen ? 
-        Math.min(window.innerWidth, window.innerHeight) * 0.15 : 
-        200 * (containerWidth / 1600);
-      const rosaVientosHeight = isFullscreen ? 
-        Math.min(window.innerWidth, window.innerHeight) * 0.15 : 
-        200 * (containerHeight / 900);
-
-      rosaVientos.style.width = `${rosaVientosWidth}px`;
-      rosaVientos.style.height = `${rosaVientosHeight}px`;
+      // Scale down to 30% for mobile devices
+      const scaleFactor = isMobile ? 0.3 : 1;
+      
+      // Find the flex container and set its size
+      const flexContainer = rosaVientos.querySelector('.flex.flex-col.items-center.justify-center');
+      if (flexContainer) {
+        const baseSize = 200;
+        (flexContainer as HTMLElement).style.width = `${baseSize * scaleFactor}px`;
+        (flexContainer as HTMLElement).style.height = `${baseSize * scaleFactor}px`;
+      }
 
       // Center rosa de los vientos
       rosaVientos.style.position = 'absolute';
@@ -214,6 +408,12 @@ const Marbles: React.FunctionComponent = () => {
       rosaVientos.style.left = '50%';
       rosaVientos.style.transform = 'translate(-50%, -50%)';
       rosaVientos.style.zIndex = '9999';
+
+      // Remove width and height from rosaVientos in mobile
+      if (isMobile) {
+        rosaVientos.style.width = '';
+        rosaVientos.style.height = '';
+      }
 
       canvas.style.borderRadius = isFullscreen ? '0' : '30px';
       canvas.style.border = '0px solid';
@@ -245,7 +445,6 @@ const Marbles: React.FunctionComponent = () => {
       updatePositions();
     };
     updatePositions();
-    console.log("sideBarOpen: ", sidebarOpen);
     window.addEventListener('resize', updatePositions);
     window.addEventListener('scroll', updatePositions);
     window.addEventListener('sidebarToggle', handleSidebarToggle);
@@ -356,10 +555,13 @@ const Marbles: React.FunctionComponent = () => {
                     zIndex: 10000,
                     padding: '8px',
                     minWidth: '40px',
-                    height: '40px'
+                    height: '40px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                    pointerEvents: 'auto',
+                    touchAction: 'manipulation'
                   }}
                 >
-                  <ExpandArrowsAltIcon />
+                  <CompressArrowsAltIcon />
                 </Button>
               )}
 

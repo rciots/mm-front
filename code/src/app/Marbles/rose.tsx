@@ -81,13 +81,13 @@ const RosaVientosEstrellas: React.FC<RosaVientosEstrellasProps> = ({
                         <text x="150" y="25" textAnchor="middle" fill="white" fontWeight="bold" fontSize="18">N</text>
                         <text x="150" y="285" textAnchor="middle" fill="white" fontWeight="bold" fontSize="18">S</text>
                         <text x="285" y="155" textAnchor="middle" fill="white" fontWeight="bold" fontSize="18">E</text>
-                        <text x="15" y="155" textAnchor="middle" fill="white" fontWeight="bold" fontSize="18">O</text>
+                        <text x="15" y="155" textAnchor="middle" fill="white" fontWeight="bold" fontSize="18">W</text>
                     </g>
                     <g className="text-blue-200">
                         <text x="240" y="60" textAnchor="middle" fill="rgba(173,216,230,0.9)" fontWeight="bold" fontSize="14">NE</text>
                         <text x="240" y="240" textAnchor="middle" fill="rgba(173,216,230,0.9)" fontWeight="bold" fontSize="14">SE</text>
-                        <text x="60" y="240" textAnchor="middle" fill="rgba(173,216,230,0.9)" fontWeight="bold" fontSize="14">SO</text>
-                        <text x="60" y="60" textAnchor="middle" fill="rgba(173,216,230,0.9)" fontWeight="bold" fontSize="14">NO</text>
+                        <text x="60" y="240" textAnchor="middle" fill="rgba(173,216,230,0.9)" fontWeight="bold" fontSize="14">SW</text>
+                        <text x="60" y="60" textAnchor="middle" fill="rgba(173,216,230,0.9)" fontWeight="bold" fontSize="14">NW</text>
                     </g>
                     <circle cx={puntoX} cy={puntoY} r="20" fill="rgba(255,0,0,0.2)" className="animate-pulse" />
                     <circle cx={puntoX} cy={puntoY} r="10" fill="rgba(255,60,60,0.8)" stroke="white" strokeWidth="2" />
