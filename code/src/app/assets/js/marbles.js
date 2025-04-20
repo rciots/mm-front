@@ -131,8 +131,6 @@ function validatePlayerName(name) {
     return true;
 }
 
-setTimeout(startCountdown, 2000);
-// create countdown function without using DOM elements, I want it integrated with REACT
 function startCountdown() {
     let countdown = 3;
     const interval = setInterval(() => {
