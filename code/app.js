@@ -110,6 +110,13 @@ io.on("connection", (socket) => {
     socket.userId = data.userId;
     console.log(`User ${data.userId} joined - Status: ${isWaiting ? 'waiting' : 'active'}`);
     socket.emit("userValidation", {valid: true, message: "User joined"});
+    if (!isWaiting) {
+      currentPlayers.push(data.userId);
+      io.emit("currentPlayers", currentPlayers);
+      if (currentPlayers.length == MAX_PLAYERS) {
+        preStartGame();
+      }
+    }
   });
 
   // Eventos de juego
@@ -120,7 +127,8 @@ io.on("connection", (socket) => {
     }
 
     const user = usersList.find(user => user.userId === socket.userId);
-    if (!user || user.waiting) {
+    const isCurrentPlayer = currentPlayers.includes(socket.userId);
+    if (!user || user.waiting || !isCurrentPlayer) {
       console.warn("Movement received from waiting/invalid user:", socket.userId);
       return;
     }
@@ -152,26 +160,31 @@ io.on("connection", (socket) => {
 // Global timeout variable
 let timeout = null;
 
-// function to start a 10s timeout
-function startTimeout() {
-  setTimeout(() => {
-    console.log("Timeout reached");
+function preStartGame() {
+  gameRunning = true;
+  ioclient.emit("phase", "preStart");
+  io.emit("phase", "preStart");
+  let timeout = setTimeout(() => {
     startGame();
-  }, 10000);
+  }, 5000);
 }
+
 function startGame() {
   gameRunning = true;
-  ioclient.emit("start");
-  usersList.forEach(user => {
-    if (!user.waiting) {
-      user.socket.emit("start");
+  ioclient.emit("phase", "start");
+  currentPlayers.forEach(user => {
+    if (user.socket) {
+      user.socket.emit("phase", "start");
     }
   });
+  let timeoutEndGame = setTimeout(() => {
+    endGame();
+  }, 60000);
 }
 function endGame() {
   gameRunning = false;
   timeout = null;
-  ioclient.emit("end");
+  ioclient.emit("phase", "end");
   usersList.forEach(user => {
     if (!user.waiting) {
       user.socket.emit("end");

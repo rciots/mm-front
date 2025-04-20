@@ -31,6 +31,86 @@ declare global {
   }
 }
 
+const Countdown: React.FC<{ count: number | string }> = ({ count }) => {
+  const [key, setKey] = React.useState(0);
+  const [shouldRender, setShouldRender] = React.useState(true);
+
+  React.useEffect(() => {
+    setKey(prev => prev + 1);
+    setShouldRender(true);
+    const timer = setTimeout(() => {
+      setShouldRender(false);
+    }, 1400); // 600ms de espera + 800ms de animación
+    return () => clearTimeout(timer);
+  }, [count]);
+
+  const getColor = () => {
+    switch(count) {
+      case 3: return '#ff4d4d';
+      case 2: return '#ffff4d';
+      case 1: return '#a6ff4d';
+      case 'GO!': return '#00ff40';
+      default: return '#ffffff';
+    }
+  };
+
+  if (!shouldRender) return null;
+
+  return (
+    <div
+      key={key}
+      style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%) scale(2)',
+        fontSize: '12rem',
+        fontWeight: 'bold',
+        color: getColor(),
+        textShadow: `
+          0 0 20px rgba(0,0,0,0.8),
+          0 0 30px rgba(0,0,0,0.6),
+          0 0 40px rgba(0,0,0,0.4),
+          0 0 50px rgba(0,0,0,0.2)
+        `,
+        zIndex: 10000,
+        pointerEvents: 'none',
+        fontFamily: 'Arial, sans-serif',
+        letterSpacing: '2px',
+        animation: count === 'GO!' 
+          ? 'goAnimation 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.6s forwards'
+          : 'countdownAnimation 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.6s forwards'
+      }}
+    >
+      {count}
+      <style>
+        {`
+          @keyframes countdownAnimation {
+            0% {
+              transform: translate(-50%, -50%) scale(2);
+              opacity: 1;
+            }
+            100% {
+              transform: translate(-50%, -50%) scale(0.2);
+              opacity: 0;
+            }
+          }
+          @keyframes goAnimation {
+            0% {
+              transform: translate(-50%, -50%) scale(2);
+              opacity: 1;
+            }
+            100% {
+              transform: translate(-50%, -50%) scale(4);
+              opacity: 0;
+            }
+          }
+        `}
+      </style>
+    </div>
+  );
+};
+
 const Marbles: React.FunctionComponent = () => {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const rosaVientosRef = React.useRef<HTMLDivElement>(null);
@@ -43,8 +123,10 @@ const Marbles: React.FunctionComponent = () => {
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const fullscreenButtonRef = React.useRef<HTMLButtonElement>(null);
   const [showForm, setShowForm] = React.useState(true);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [playersQueue, setPlayersQueue] = React.useState<string[]>([]);
   const [currentPlayers, setCurrentPlayers] = React.useState<string[]>([]);
+  const [countdown, setCountdown] = React.useState<number | string | null>(null);
   const touchStartYRef = React.useRef(0);
 
   const handleTouchStart = (e: TouchEvent) => {
@@ -65,8 +147,7 @@ const Marbles: React.FunctionComponent = () => {
     if (window.validatePlayerName && window.validatePlayerName(playerName)) {
       setModalOpen(!isModalOpen);
       setShowForm(false);
-    } else {
-      alert('Player name must be at least 4 characters long');
+      socket.emit('join', { userId: playerName });
     }
   };
 
@@ -444,14 +525,24 @@ const Marbles: React.FunctionComponent = () => {
       setSidebarOpen(event.detail.sidebarOpen);
       updatePositions();
     };
+
+    const handleShowJoinForm = (event) => {
+      setShowForm(event.detail.show);
+      if (event.detail.error) {
+        setErrorMessage(event.detail.error);
+      }
+    };
+
     updatePositions();
     window.addEventListener('resize', updatePositions);
     window.addEventListener('scroll', updatePositions);
     window.addEventListener('sidebarToggle', handleSidebarToggle);
+    window.addEventListener('showJoinForm', handleShowJoinForm);
     return () => {
       window.removeEventListener('resize', updatePositions);
       window.removeEventListener('scroll', updatePositions);
       window.removeEventListener('sidebarToggle', handleSidebarToggle);
+      window.removeEventListener('showJoinForm', handleShowJoinForm);
     };
   }, [scriptLoaded, sidebarOpen, streamStarted, isFullscreen]);
 
@@ -459,6 +550,20 @@ const Marbles: React.FunctionComponent = () => {
     console.log('Direction:', direction);
     // Here you can add the logic to handle movements
   };
+
+  React.useEffect(() => {
+    const handleCountdownUpdate = (event: CustomEvent) => {
+      setCountdown(event.detail.count);
+      if (event.detail.count === 'start') {
+        setTimeout(() => setCountdown(null), 1000);
+      }
+    };
+
+    window.addEventListener('countdownUpdate', handleCountdownUpdate as EventListener);
+    return () => {
+      window.removeEventListener('countdownUpdate', handleCountdownUpdate as EventListener);
+    };
+  }, []);
 
   return (
     <PageSection>
@@ -505,6 +610,22 @@ const Marbles: React.FunctionComponent = () => {
               )}
             </div>
 
+            {errorMessage && (
+              <Modal
+                variant={ModalVariant.small}
+                title="Error"
+                isOpen={!!errorMessage}
+                onClose={() => setErrorMessage(null)}
+                actions={[
+                  <Button key="close" variant="primary" onClick={() => setErrorMessage(null)}>
+                    Cerrar
+                  </Button>
+                ]}
+              >
+                {errorMessage}
+              </Modal>
+            )}
+
             <br/>
             <div 
               id="canvas-container"
@@ -529,6 +650,8 @@ const Marbles: React.FunctionComponent = () => {
                   height: '100%'
                 }}
               />
+              
+              {countdown !== null && <Countdown count={countdown} />}
               
               <div 
                 ref={rosaVientosRef}
