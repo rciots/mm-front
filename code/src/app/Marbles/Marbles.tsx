@@ -588,7 +588,7 @@ const Marbles: React.FunctionComponent = () => {
                 </Button>
               </div>
               {showForm && (
-                <Form isHorizontal>
+                <Form isHorizontal onSubmit={(e) => e.preventDefault()}>
                   <Grid hasGutter>
                     <GridItem span={2}>
                       <TextInput 
@@ -600,6 +600,12 @@ const Marbles: React.FunctionComponent = () => {
                         aria-describedby="playerName"
                         value={playerName}
                         onChange={handleNameInputChange}
+                        onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleModalToggle(e as unknown as KeyboardEvent);
+                          }
+                        }}
                       />
                     </GridItem>
                     <GridItem span={1} className="pf-u-ml-md"> 
