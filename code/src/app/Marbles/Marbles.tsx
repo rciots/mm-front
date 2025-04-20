@@ -642,7 +642,8 @@ const Marbles: React.FunctionComponent = () => {
                 alignItems: 'center',
                 width: isFullscreen ? '100%' : 'auto',
                 height: isFullscreen ? '100%' : 'auto',
-                margin: '0 auto'
+                margin: '0 auto',
+                backgroundColor: isFullscreen ? 'black' : 'transparent'
               }}
             >
               <canvas
@@ -652,8 +653,9 @@ const Marbles: React.FunctionComponent = () => {
                 height={1008}
                 style={{ 
                   position: 'relative',
-                  width: '100%',
-                  height: '100%'
+                  width: isFullscreen ? 'auto' : '100%',
+                  height: isFullscreen ? '100%' : '100%',
+                  objectFit: isFullscreen ? 'contain' : 'cover'
                 }}
               />
               
