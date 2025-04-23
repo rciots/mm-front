@@ -3,6 +3,13 @@ var socket = io();
 socket.on('connect', function() {
     console.log('Connected to server');
 });
+
+// Desconectar el socket cuando el usuario navega a otra ruta
+window.addEventListener('beforeunload', function() {
+    socket.disconnect();
+    console.log('Socket disconnected due to navigation');
+});
+
 let activePlayer = false;
 socket.on('phase', function(phase) {
     if (phase == 'preStart') {

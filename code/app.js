@@ -40,24 +40,24 @@ streaming_websocket.broadcast = function(data){
 
 
 
-// Configuración de Express
+// Express configuration
 app.use(express.static(path.join(__dirname, "dist")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
-// Configuración del servidor
+// Server configuration
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Configuración del cliente socket
+// Socket client configuration
 const ioclient = new socketcli.connect("http://" + socket_manager + ":" + cliport, {
   extraHeaders: { origin: "ui" },
   reconnection: true,
   reconnectionDelay: 500
 });
 
-// Eventos del cliente socket
+// Socket client events
 ioclient.on("connect", () => {
   console.log("Connected to game manager server");
 });
@@ -71,25 +71,30 @@ ioclient.on("disconnect", () => {
 ioclient.on("error", (error) => {
   console.error("Game manager connection error:", error);
 });
-
-// Variables de estado del juego
+ioclient.on("selectedColors", (data) => {
+  console.log("selectedColors: " + data);
+});
+ioclient.on("winner", (data) => {
+  console.log("winner: " + data);
+});
+// Game state variables
 let usersList = [];
 let gameRunning = false;
 const MAX_PLAYERS = 1;
 let currentPlayers = [];
 
-// Eventos del servidor socket
+// Server socket events
 io.on("connection", (socket) => {
   console.log("New client connected");
   socket.emit("usersList", usersList);
   socket.emit("currentPlayers", currentPlayers);
-  // Eventos de gestión de conexión
+  // Connection management events
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.userId);
     usersList = usersList.filter(user => user.socket.id !== socket.id);
   });
 
-  // Eventos de gestión de usuario
+  // User management events
   socket.on("join", (data) => {
     const existingUser = usersList.find(user => user.userId === data.userId);
     if (existingUser) {
@@ -119,7 +124,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Eventos de juego
+  // Game events
   socket.on("movement", (data) => {
     if (!socket.userId) {
       console.warn("Received movement from unidentified user");
@@ -192,7 +197,7 @@ function endGame() {
   });
   usersList = usersList.filter(user => user.waiting);
 }
-// Iniciar servidor
+// Start server
 server.listen(PORT, () => {
   console.log(`Internal Web Socket Server listening on port ${PORT}`);
 });
