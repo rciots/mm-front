@@ -1,6 +1,13 @@
 import * as React from 'react';
 import { motion, useMotionValue, animate } from 'framer-motion';
 
+// Declarar la interfaz global para updatePadPosition
+declare global {
+  interface Window {
+    updatePadPosition?: (direction: string) => void;
+  }
+}
+
 interface PadControlProps {
   onDirectionChange: (direction: string) => void;
 }
@@ -10,16 +17,74 @@ const PadControl: React.FunctionComponent<PadControlProps> = ({ onDirectionChang
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
+  // Función para actualizar la posición del pad
+  const updatePadPosition = React.useCallback((direction: string) => {
+    const distance = 50; // Misma distancia que en dragConstraints
+    let newX = 0;
+    let newY = 0;
+
+    switch(direction) {
+      case 'N':
+        newY = -distance;
+        break;
+      case 'S':
+        newY = distance;
+        break;
+      case 'E':
+        newX = distance;
+        break;
+      case 'W':
+        newX = -distance;
+        break;
+      case 'NE':
+        newX = distance * Math.cos(Math.PI / 4);
+        newY = -distance * Math.sin(Math.PI / 4);
+        break;
+      case 'NW':
+        newX = -distance * Math.cos(Math.PI / 4);
+        newY = -distance * Math.sin(Math.PI / 4);
+        break;
+      case 'SE':
+        newX = distance * Math.cos(Math.PI / 4);
+        newY = distance * Math.sin(Math.PI / 4);
+        break;
+      case 'SW':
+        newX = -distance * Math.cos(Math.PI / 4);
+        newY = distance * Math.sin(Math.PI / 4);
+        break;
+      case 'center':
+        newX = 0;
+        newY = 0;
+        break;
+    }
+
+    animate(x, newX, { duration: 0.1 });
+    animate(y, newY, { duration: 0.1 });
+  }, [x, y]);
+
+  // Exponer la función al scope global
+  React.useEffect(() => {
+    window.updatePadPosition = updatePadPosition;
+    return () => {
+      delete window.updatePadPosition;
+    };
+  }, [updatePadPosition]);
+
   const handleDragStart = () => {
     setIsDragging(true);
   };
 
   const handleDragEnd = () => {
     setIsDragging(false);
-    onDirectionChange('center');
-    // Forzar el retorno al centro
+    // Reset position
     animate(x, 0, { duration: 0.1 });
     animate(y, 0, { duration: 0.1 });
+    // Send center direction
+    onDirectionChange('center');
+    // Update movement state through global function
+    if (window.updateMovementState) {
+      window.updateMovementState('center');
+    }
   };
 
   const handleDrag = (event: any, info: any) => {
@@ -38,6 +103,10 @@ const PadControl: React.FunctionComponent<PadControlProps> = ({ onDirectionChang
     }
 
     onDirectionChange(direction);
+    // Update movement state through global function
+    if (window.updateMovementState) {
+      window.updateMovementState(direction);
+    }
   };
 
   return (

@@ -14,6 +14,75 @@ let activePlayer = false;
 let gameTimer = null;
 let remainingTime = 90;
 
+// Objeto para mantener el estado de las flechas y el pad
+let movementState = {
+    up: false,
+    down: false,
+    left: false,
+    right: false
+};
+
+// Función para enviar el movimiento actual
+function sendMovement() {
+    if (!activePlayer) return;
+    socket.emit('movement', movementState);
+}
+
+// Función para actualizar el estado de movimiento
+function updateMovementState(direction) {
+    // Reset all directions
+    movementState.up = false;
+    movementState.down = false;
+    movementState.left = false;
+    movementState.right = false;
+
+    // Set active directions based on the input
+    switch(direction) {
+        case 'N':
+            movementState.up = true;
+            break;
+        case 'S':
+            movementState.down = true;
+            break;
+        case 'E':
+            movementState.right = true;
+            break;
+        case 'W':
+            movementState.left = true;
+            break;
+        case 'NE':
+            movementState.up = true;
+            movementState.right = true;
+            break;
+        case 'NW':
+            movementState.up = true;
+            movementState.left = true;
+            break;
+        case 'SE':
+            movementState.down = true;
+            movementState.right = true;
+            break;
+        case 'SW':
+            movementState.down = true;
+            movementState.left = true;
+            break;
+        case 'center':
+            // All directions are already false
+            break;
+    }
+
+    // Send the movement
+    sendMovement();
+
+    // Update pad position if available
+    if (window.updatePadPosition) {
+        window.updatePadPosition(direction);
+    }
+}
+
+// Exponer la función updateMovementState al scope global
+window.updateMovementState = updateMovementState;
+
 socket.on('phase', function(phase) {
     console.log("phase:", phase);
     if (phase == 'preStart') {
@@ -28,11 +97,14 @@ socket.on('phase', function(phase) {
     } else if (phase == 'end') {
         // set direction to center and arrows to false
         direction = 'center';
-        arrows.up = false;
-        arrows.down = false;
-        arrows.left = false;
-        arrows.right = false;
-        moveArrow();
+        movementState.up = false;
+        movementState.down = false;
+        movementState.left = false;
+        movementState.right = false;
+        sendMovement();
+        if (window.updatePadPosition) {
+            window.updatePadPosition('center');
+        }
         activePlayer = false;
         if (gameTimer) {
             clearInterval(gameTimer);
@@ -68,6 +140,7 @@ socket.on('currentPlayers', function(currentPlayers) {
     const event = new CustomEvent('updateCurrentPlayers', { detail: { currentPlayers } });
     window.dispatchEvent(event);
 });
+
 socket.on('userValidation', function(userValidation) {
     if (!userValidation.valid) {
         const event = new CustomEvent('showJoinForm', { 
@@ -79,81 +152,73 @@ socket.on('userValidation', function(userValidation) {
         window.dispatchEvent(event);
     }
 });
-// create arrows object with up, down, left and right
-var arrows = {
-    up: false,
-    down: false,
-    left: false,
-    right: false
-};
-// capture when a arrow key is pressed and released and print in console
+
+// Manejadores de eventos para las teclas de flecha
 document.addEventListener('keydown', function(event) {
-    if  ((event.code == 'ArrowUp') && (arrows.up == false)) {
-        arrows.up = true;
-        console.log('ArrowUp pressed');
-    }else if ((event.code == 'ArrowDown') && (arrows.down == false)) {
-        arrows.down = true;
-        console.log('ArrowDown pressed');
-    }else if ((event.code == 'ArrowLeft') && (arrows.left == false)) {
-        arrows.left = true;
-        console.log('ArrowLeft pressed');
-    }else if ((event.code == 'ArrowRight') && (arrows.right == false)) {
-        arrows.right = true;
-        console.log('ArrowRight pressed');
-    }else {
-        return;
-    }
-    moveArrow();
-}
-);
-document.addEventListener('keyup', function(event) {
-    if ((event.code == 'ArrowUp') && (arrows.up == true)) {
-        arrows.up = false;
-        console.log('ArrowUp released');
-    }else if ((event.code == 'ArrowDown') && (arrows.down == true)) {
-        arrows.down = false;
-        console.log('ArrowDown released');
-    }else if ((event.code == 'ArrowLeft') && (arrows.left == true)) {
-        arrows.left = false;
-        console.log('ArrowLeft released');
-    }else if ((event.code == 'ArrowRight') && (arrows.right == true)) {
-        arrows.right = false;
-        console.log('ArrowRight released');
-    }else {
-        return;
-    }
-    moveArrow();
-}
-);
-
-
-// create function to be called when arrow key is pressed
-function moveArrow() {
-    if (!activePlayer) {
-        return;
-    }
-    console.log(arrows);
-    socket.emit('movement', arrows);
+    if (!activePlayer) return;
+    
     let direction = 'center';
-    // set direction based on arrow keys pressed with optimal code, with one of: N, S, E, W, NE, NW, SE, SW 
-    const verticalConflict = arrows.up && arrows.down;
-    const horizontalConflict = arrows.left && arrows.right;
-    if (verticalConflict || horizontalConflict) {
-        direction = 'center';
-    } else {
-        const vertical = arrows.up ? 'N' : arrows.down ? 'S' : '';
-        const horizontal = arrows.left ? 'W' : arrows.right ? 'E' : '';
-        direction = vertical + horizontal;
-        if (direction === '') {
-            direction = 'center';
-        }
-
+    
+    if (event.code == 'ArrowUp') {
+        movementState.up = true;
+        if (movementState.right) direction = 'NE';
+        else if (movementState.left) direction = 'NW';
+        else direction = 'N';
+    } else if (event.code == 'ArrowDown') {
+        movementState.down = true;
+        if (movementState.right) direction = 'SE';
+        else if (movementState.left) direction = 'SW';
+        else direction = 'S';
+    } else if (event.code == 'ArrowLeft') {
+        movementState.left = true;
+        if (movementState.up) direction = 'NW';
+        else if (movementState.down) direction = 'SW';
+        else direction = 'W';
+    } else if (event.code == 'ArrowRight') {
+        movementState.right = true;
+        if (movementState.up) direction = 'NE';
+        else if (movementState.down) direction = 'SE';
+        else direction = 'E';
     }
-    console.log(direction);
-    // set RosaVientosEstrellas direction
-    const customEvent = new CustomEvent('changeDirection', { detail: { direction } });
-    window.dispatchEvent(customEvent);
-}
+
+    sendMovement();
+    if (window.updatePadPosition) {
+        window.updatePadPosition(direction);
+    }
+});
+
+document.addEventListener('keyup', function(event) {
+    if (!activePlayer) return;
+    
+    let direction = 'center';
+    
+    if (event.code == 'ArrowUp') {
+        movementState.up = false;
+        if (movementState.right) direction = 'E';
+        else if (movementState.left) direction = 'W';
+        else if (movementState.down) direction = 'S';
+    } else if (event.code == 'ArrowDown') {
+        movementState.down = false;
+        if (movementState.right) direction = 'E';
+        else if (movementState.left) direction = 'W';
+        else if (movementState.up) direction = 'N';
+    } else if (event.code == 'ArrowLeft') {
+        movementState.left = false;
+        if (movementState.up) direction = 'N';
+        else if (movementState.down) direction = 'S';
+        else if (movementState.right) direction = 'E';
+    } else if (event.code == 'ArrowRight') {
+        movementState.right = false;
+        if (movementState.up) direction = 'N';
+        else if (movementState.down) direction = 'S';
+        else if (movementState.left) direction = 'W';
+    }
+
+    sendMovement();
+    if (window.updatePadPosition) {
+        window.updatePadPosition(direction);
+    }
+});
 
 function validatePlayerName(name) {
     if (!name || name.length < 4) {
