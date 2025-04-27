@@ -2,7 +2,7 @@ FROM registry.access.redhat.com/ubi9/nodejs-20-minimal:latest as builder
 USER root
 WORKDIR /app
 COPY package.json /app
-RUN npm ci
+RUN npm install
 COPY . /app
 RUN npm run build
 
@@ -12,6 +12,8 @@ WORKDIR /app
 COPY package.json /app
 COPY app.js /app
 COPY --from=builder /app/dist /app/dist
+RUN npm install
+RUN npm cache clean --force
 RUN chown -R 1001:0 /app
 USER 1001
 EXPOSE 8080
