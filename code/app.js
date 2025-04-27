@@ -166,6 +166,7 @@ io.on("connection", (socket) => {
 let timeout = null;
 
 function preStartGame() {
+  console.log("preStartGame");
   gameRunning = true;
   ioclient.emit("phase", "preStart");
   io.emit("phase", "preStart");
@@ -175,6 +176,7 @@ function preStartGame() {
 }
 
 function startGame() {
+  console.log("startGame");
   gameRunning = true;
   ioclient.emit("phase", "start");
   currentPlayers.forEach(user => {
@@ -187,6 +189,7 @@ function startGame() {
   }, 60000);
 }
 function endGame() {
+  console.log("endGame");
   gameRunning = false;
   timeout = null;
   ioclient.emit("phase", "end");
@@ -194,9 +197,13 @@ function endGame() {
   
   // After 10 seconds, rotate players and start new game
   setTimeout(() => {
+    io.emit("phase", "idle");
+    ioclient.emit("phase", "idle");
+    console.log("idle");
     // Remove current players from the list
     usersList = usersList.filter(user => user.waiting);
     
+
     // Clear current players array
     currentPlayers = [];
     

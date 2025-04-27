@@ -15,6 +15,7 @@ let gameTimer = null;
 let remainingTime = 60; // 1 minute in seconds
 
 socket.on('phase', function(phase) {
+    console.log("phase:", phase);
     if (phase == 'preStart') {
         // start countdown function
         startCountdown();
@@ -170,7 +171,7 @@ function startGameTimer() {
         const minutes = Math.floor(remainingTime / 60);
         const seconds = remainingTime % 60;
         const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        
+        console.log("timeString:", timeString);
         const event = new CustomEvent('updateGameTimer', { detail: { time: timeString } });
         window.dispatchEvent(event);
         
