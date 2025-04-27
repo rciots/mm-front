@@ -12,7 +12,7 @@ window.addEventListener('beforeunload', function() {
 
 let activePlayer = false;
 let gameTimer = null;
-let remainingTime = 60; // 1 minute in seconds
+let remainingTime = 90;
 
 socket.on('phase', function(phase) {
     console.log("phase:", phase);
@@ -26,12 +26,33 @@ socket.on('phase', function(phase) {
         const event = new CustomEvent('startGame');
         window.dispatchEvent(event);
     } else if (phase == 'end') {
+        // set direction to center and arrows to false
+        direction = 'center';
+        arrows.up = false;
+        arrows.down = false;
+        arrows.left = false;
+        arrows.right = false;
+        moveArrow();
         activePlayer = false;
         if (gameTimer) {
             clearInterval(gameTimer);
             gameTimer = null;
         }
         const event = new CustomEvent('endGame');
+        window.dispatchEvent(event);
+    } else if (phase == 'idle') {
+        activePlayer = false;
+        if (gameTimer) {
+            clearInterval(gameTimer);
+            gameTimer = null;
+        }
+        // Reset game timer state
+        const event = new CustomEvent('updateGameTimer', { 
+            detail: { 
+                time: null,
+                isEnded: false
+            } 
+        });
         window.dispatchEvent(event);
     }
 });
@@ -173,7 +194,12 @@ function startGameTimer() {
         const seconds = remainingTime % 60;
         const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         console.log("timeString:", timeString);
-        const event = new CustomEvent('updateGameTimer', { detail: { time: timeString } });
+        const event = new CustomEvent('updateGameTimer', { 
+            detail: { 
+                time: timeString,
+                isEnded: remainingTime <= 0
+            } 
+        });
         window.dispatchEvent(event);
         
         if (remainingTime <= 0) {

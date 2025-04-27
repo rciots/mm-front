@@ -128,6 +128,7 @@ const Marbles: React.FunctionComponent = () => {
   const [currentPlayers, setCurrentPlayers] = React.useState<string[]>([]);
   const [countdown, setCountdown] = React.useState<number | string | null>(null);
   const [gameTime, setGameTime] = React.useState<string | null>(null);
+  const [isGameEnded, setIsGameEnded] = React.useState<boolean>(false);
   const touchStartYRef = React.useRef(0);
 
   const handleTouchStart = (e: TouchEvent) => {
@@ -569,6 +570,7 @@ const Marbles: React.FunctionComponent = () => {
   React.useEffect(() => {
     const handleGameTimerUpdate = (event: CustomEvent) => {
       setGameTime(event.detail.time);
+      setIsGameEnded(event.detail.isEnded);
     };
 
     window.addEventListener('updateGameTimer', handleGameTimerUpdate as EventListener);
@@ -765,7 +767,7 @@ const Marbles: React.FunctionComponent = () => {
                 >
                   {gameTime && (
                     <div style={{ fontWeight: 'bold' }}>
-                      Time left: {gameTime}
+                      {isGameEnded ? 'Game ended: out of time' : `Time left: ${gameTime}`}
                     </div>
                   )}
                   <div>

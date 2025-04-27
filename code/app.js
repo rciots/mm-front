@@ -182,7 +182,7 @@ function startGame() {
   io.emit("phase", "start");
   let timeoutEndGame = setTimeout(() => {
     endGame();
-  }, 60000);
+  }, 90000);
 }
 function endGame() {
   console.log("endGame");
