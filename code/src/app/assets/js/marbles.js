@@ -90,7 +90,7 @@ socket.on('phase', function(phase) {
         startCountdown();
     } else if (phase == 'start') {
         activePlayer = true;
-        remainingTime = 60; // Reset timer
+        remainingTime = 90; // Reset timer
         startGameTimer();
         const event = new CustomEvent('startGame');
         window.dispatchEvent(event);

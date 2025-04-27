@@ -133,13 +133,14 @@ io.on("connection", (socket) => {
 
     const user = usersList.find(user => user.userId === socket.userId);
     const isCurrentPlayer = currentPlayers.includes(socket.userId);
+    
     if (!user || user.waiting || !isCurrentPlayer) {
       console.warn("Movement received from waiting/invalid user:", socket.userId);
       return;
     }
 
     if (!gameRunning) {
-      console.warn("Game is not running, movement ignored");
+      console.warn("Game is not running, movement ignored for user:", socket.userId);
       return;
     }
 
