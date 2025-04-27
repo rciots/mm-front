@@ -172,18 +172,14 @@ function preStartGame() {
   io.emit("phase", "preStart");
   let timeout = setTimeout(() => {
     startGame();
-  }, 5000);
+  }, 6000);
 }
 
 function startGame() {
   console.log("startGame");
   gameRunning = true;
   ioclient.emit("phase", "start");
-  currentPlayers.forEach(user => {
-    if (user.socket) {
-      user.socket.emit("phase", "start");
-    }
-  });
+  io.emit("phase", "start");
   let timeoutEndGame = setTimeout(() => {
     endGame();
   }, 60000);

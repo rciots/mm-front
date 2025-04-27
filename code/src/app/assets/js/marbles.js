@@ -155,6 +155,7 @@ function startCountdown() {
         window.dispatchEvent(event);
         countdown--;
         if (countdown < 0) {
+            activePlayer = true;
             clearInterval(interval);
             const startEvent = new CustomEvent('countdownUpdate', { detail: { count: 'GO!' } });
             window.dispatchEvent(startEvent);
