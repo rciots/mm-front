@@ -112,6 +112,14 @@ socket.on('phase', function(phase) {
         }
         const event = new CustomEvent('endGame');
         window.dispatchEvent(event);
+        // Mostrar el formulario de username
+        const showFormEvent = new CustomEvent('showJoinForm', { 
+            detail: { 
+                show: true,
+                error: null
+            } 
+        });
+        window.dispatchEvent(showFormEvent);
     } else if (phase == 'idle') {
         activePlayer = false;
         if (gameTimer) {
@@ -136,8 +144,21 @@ socket.on('usersList', function(usersList) {
 });
 
 socket.on('currentPlayers', function(currentPlayers) {
+    // Crear el HTML para mostrar los jugadores con sus colores
+    const playersHtml = currentPlayers.map(player => {
+        const colorCircle = player.color ? 
+            `<span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${player.color.toLowerCase()}; border: 1px solid #000; margin-right: 4px;"></span>` : 
+            '';
+        return `${colorCircle}${player.user}`;
+    }).join(' | ');
+
     // Disparar evento personalizado con los jugadores actuales
-    const event = new CustomEvent('updateCurrentPlayers', { detail: { currentPlayers } });
+    const event = new CustomEvent('updateCurrentPlayers', { 
+        detail: { 
+            currentPlayers,
+            playersHtml
+        } 
+    });
     window.dispatchEvent(event);
 });
 

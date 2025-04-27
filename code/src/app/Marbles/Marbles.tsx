@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PageSection, Title, Modal, ModalVariant, Button, Form, FormGroup, Grid, GridItem, Popover, TextInput } from '@patternfly/react-core';
+import { PageSection, Title, Modal, ModalVariant, Button, Form, FormGroup, Grid, GridItem, Popover, TextInput, Alert, Banner } from '@patternfly/react-core';
 import RosaVientosEstrellas from './rose';
 import { ExpandArrowsAltIcon, CompressArrowsAltIcon } from '@patternfly/react-icons';
 import { PadControl } from './PadControl';
@@ -111,6 +111,11 @@ const Countdown: React.FC<{ count: number | string }> = ({ count }) => {
   );
 };
 
+interface Player {
+  user: string;
+  color: string | null;
+}
+
 const Marbles: React.FunctionComponent = () => {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const rosaVientosRef = React.useRef<HTMLDivElement>(null);
@@ -125,11 +130,12 @@ const Marbles: React.FunctionComponent = () => {
   const [showForm, setShowForm] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [playersQueue, setPlayersQueue] = React.useState<string[]>([]);
-  const [currentPlayers, setCurrentPlayers] = React.useState<string[]>([]);
+  const [currentPlayers, setCurrentPlayers] = React.useState<Player[]>([]);
   const [countdown, setCountdown] = React.useState<number | string | null>(null);
   const [gameTime, setGameTime] = React.useState<string | null>(null);
   const [isGameEnded, setIsGameEnded] = React.useState<boolean>(false);
   const touchStartYRef = React.useRef(0);
+  const [currentPlayersHtml, setCurrentPlayersHtml] = React.useState<string>('');
 
   const handleTouchStart = (e: TouchEvent) => {
     touchStartYRef.current = e.touches[0].clientY;
@@ -193,6 +199,7 @@ const Marbles: React.FunctionComponent = () => {
 
     const handleCurrentPlayersUpdate = (event: CustomEvent) => {
       setCurrentPlayers(event.detail.currentPlayers);
+      setCurrentPlayersHtml(event.detail.playersHtml);
     };
 
     window.addEventListener('updatePlayersQueue', handlePlayersQueueUpdate as EventListener);
@@ -581,6 +588,9 @@ const Marbles: React.FunctionComponent = () => {
 
   return (
     <PageSection>
+      <Banner variant="blue">
+        Dev Preview: Currently only one player per game is allowed, multiplayer support is pending
+      </Banner>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <div id="divResponsive" style={isWideScreen ? { maxWidth: '90%', width: '100%' } : {}}>
           <Title headingLevel="h1">Play Marbles Maze at the Edge!</Title>
@@ -771,7 +781,7 @@ const Marbles: React.FunctionComponent = () => {
                     </div>
                   )}
                   <div>
-                    Current: {currentPlayers.join(' | ')}
+                    Current: <span dangerouslySetInnerHTML={{ __html: currentPlayersHtml }} />
                   </div>
                 </div>
               )}

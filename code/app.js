@@ -73,6 +73,10 @@ ioclient.on("error", (error) => {
 });
 ioclient.on("selectedColors", (data) => {
   console.log("selectedColors: " + data);
+  for (let i = 0; i < data.colors.length; i++) {
+    // assign each color to a player
+    currentPlayers[i].color = data.colors[i];
+  }
 });
 ioclient.on("winner", (data) => {
   console.log("winner: " + data);
@@ -116,7 +120,7 @@ io.on("connection", (socket) => {
     console.log(`User ${data.userId} joined - Status: ${isWaiting ? 'waiting' : 'active'}`);
     socket.emit("userValidation", {valid: true, message: "User joined"});
     if (!isWaiting) {
-      currentPlayers.push(data.userId);
+      currentPlayers.push({ user: data.userId, color: null });
       io.emit("currentPlayers", currentPlayers);
       if (currentPlayers.length == MAX_PLAYERS) {
         preStartGame();
@@ -132,7 +136,7 @@ io.on("connection", (socket) => {
     }
 
     const user = usersList.find(user => user.userId === socket.userId);
-    const isCurrentPlayer = currentPlayers.includes(socket.userId);
+    const isCurrentPlayer = currentPlayers.some(player => player.user === socket.userId);
     
     if (!user || user.waiting || !isCurrentPlayer) {
       console.warn("Movement received from waiting/invalid user:", socket.userId);
@@ -200,7 +204,6 @@ function endGame() {
     // Remove current players from the list
     usersList = usersList.filter(user => user.waiting);
     
-
     // Clear current players array
     currentPlayers = [];
     
@@ -212,7 +215,7 @@ function endGame() {
     // Update their status and add to currentPlayers
     nextPlayers.forEach(user => {
       user.waiting = false;
-      currentPlayers.push(user.userId);
+      currentPlayers.push({ user: user.userId, color: null });
     });
     
     // Update current players list for all clients
