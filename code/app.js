@@ -190,12 +190,35 @@ function endGame() {
   gameRunning = false;
   timeout = null;
   ioclient.emit("phase", "end");
-  usersList.forEach(user => {
-    if (!user.waiting) {
-      user.socket.emit("end");
+  io.emit("phase", "end");
+  
+  // After 10 seconds, rotate players and start new game
+  setTimeout(() => {
+    // Remove current players from the list
+    usersList = usersList.filter(user => user.waiting);
+    
+    // Clear current players array
+    currentPlayers = [];
+    
+    // Get next players from the queue
+    const nextPlayers = usersList
+      .filter(user => user.waiting)
+      .slice(0, MAX_PLAYERS);
+    
+    // Update their status and add to currentPlayers
+    nextPlayers.forEach(user => {
+      user.waiting = false;
+      currentPlayers.push(user.userId);
+    });
+    
+    // Update current players list for all clients
+    io.emit("currentPlayers", currentPlayers);
+    
+    // If we have enough players, start a new game
+    if (currentPlayers.length === MAX_PLAYERS) {
+      preStartGame();
     }
-  });
-  usersList = usersList.filter(user => user.waiting);
+  }, 10000);
 }
 // Start server
 server.listen(PORT, () => {

@@ -11,16 +11,25 @@ window.addEventListener('beforeunload', function() {
 });
 
 let activePlayer = false;
+let gameTimer = null;
+let remainingTime = 60; // 1 minute in seconds
+
 socket.on('phase', function(phase) {
     if (phase == 'preStart') {
         // start countdown function
         startCountdown();
     } else if (phase == 'start') {
         activePlayer = true;
+        remainingTime = 60; // Reset timer
+        startGameTimer();
         const event = new CustomEvent('startGame');
         window.dispatchEvent(event);
     } else if (phase == 'end') {
         activePlayer = false;
+        if (gameTimer) {
+            clearInterval(gameTimer);
+            gameTimer = null;
+        }
         const event = new CustomEvent('endGame');
         window.dispatchEvent(event);
     }
@@ -150,4 +159,24 @@ function startCountdown() {
             window.dispatchEvent(startEvent);
         }
     }, 1500);
+}
+
+function startGameTimer() {
+    if (gameTimer) {
+        clearInterval(gameTimer);
+    }
+    gameTimer = setInterval(() => {
+        remainingTime--;
+        const minutes = Math.floor(remainingTime / 60);
+        const seconds = remainingTime % 60;
+        const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        const event = new CustomEvent('updateGameTimer', { detail: { time: timeString } });
+        window.dispatchEvent(event);
+        
+        if (remainingTime <= 0) {
+            clearInterval(gameTimer);
+            gameTimer = null;
+        }
+    }, 1000);
 }

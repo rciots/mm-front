@@ -127,6 +127,7 @@ const Marbles: React.FunctionComponent = () => {
   const [playersQueue, setPlayersQueue] = React.useState<string[]>([]);
   const [currentPlayers, setCurrentPlayers] = React.useState<string[]>([]);
   const [countdown, setCountdown] = React.useState<number | string | null>(null);
+  const [gameTime, setGameTime] = React.useState<string | null>(null);
   const touchStartYRef = React.useRef(0);
 
   const handleTouchStart = (e: TouchEvent) => {
@@ -565,6 +566,17 @@ const Marbles: React.FunctionComponent = () => {
     };
   }, []);
 
+  React.useEffect(() => {
+    const handleGameTimerUpdate = (event: CustomEvent) => {
+      setGameTime(event.detail.time);
+    };
+
+    window.addEventListener('updateGameTimer', handleGameTimerUpdate as EventListener);
+    return () => {
+      window.removeEventListener('updateGameTimer', handleGameTimerUpdate as EventListener);
+    };
+  }, []);
+
   return (
     <PageSection>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -744,10 +756,21 @@ const Marbles: React.FunctionComponent = () => {
                     padding: '10px',
                     minWidth: '200px',
                     textAlign: 'center',
-                    fontSize: '1.1em'
+                    fontSize: '1.1em',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '20px'
                   }}
                 >
-                  Current: {currentPlayers.join(' | ')}
+                  {gameTime && (
+                    <div style={{ fontWeight: 'bold' }}>
+                      Time left: {gameTime}
+                    </div>
+                  )}
+                  <div>
+                    Current: {currentPlayers.join(' | ')}
+                  </div>
                 </div>
               )}
 
