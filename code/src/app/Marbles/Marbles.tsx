@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PageSection, Title, Modal, ModalVariant, Button, Form, FormGroup, Grid, GridItem, Popover, TextInput, Alert, Banner } from '@patternfly/react-core';
+import { PageSection, Title, Modal, ModalVariant, Button, Form, FormGroup, Grid, GridItem, Popover, TextInput } from '@patternfly/react-core';
 import RosaVientosEstrellas from './rose';
 import { ExpandArrowsAltIcon, CompressArrowsAltIcon } from '@patternfly/react-icons';
 import { PadControl } from './PadControl';
@@ -588,9 +588,6 @@ const Marbles: React.FunctionComponent = () => {
 
   return (
     <PageSection>
-      <Banner variant="blue">
-        Dev Preview: Currently only one player per game is allowed, multiplayer support is pending
-      </Banner>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <div id="divResponsive" style={isWideScreen ? { maxWidth: '90%', width: '100%' } : {}}>
           <Title headingLevel="h1">Play Marbles Maze at the Edge!</Title>
