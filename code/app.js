@@ -73,10 +73,21 @@ ioclient.on("error", (error) => {
 });
 ioclient.on("selectedColors", (data) => {
   console.log("selectedColors: " + data);
-  for (let i = 0; i < data.colors.length; i++) {
-    // assign each color to a player
-    currentPlayers[i].color = data.colors[i];
+  if (!currentPlayers || currentPlayers.length === 0) {
+    console.warn("No hay jugadores actuales para asignar colores");
+    return;
   }
+  
+  // Convertir la cadena de colores en un array
+  const colors = data.colors.split(':');
+  
+  // Asignar colores a los jugadores actuales
+  for (let i = 0; i < colors.length && i < currentPlayers.length; i++) {
+    currentPlayers[i].color = colors[i];
+  }
+  
+  // Emitir la actualización de jugadores a todos los clientes
+  io.emit("currentPlayers", currentPlayers);
 });
 ioclient.on("winner", (data) => {
   console.log("winner: " + data);
