@@ -203,6 +203,7 @@ function startGame() {
 function endGame() {
   console.log("endGame");
   gameRunning = false;
+  ioclient.emit("movement", {up: false, down: false, left: false, right: false});
   timeout = null;
   ioclient.emit("phase", "end");
   io.emit("phase", "end");
